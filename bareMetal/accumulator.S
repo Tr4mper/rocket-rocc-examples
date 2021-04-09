@@ -3,7 +3,10 @@
 #include "include/accumulator.h"
 #include "rocc-software/src/riscv_test_rocc.h"
 
-#define CUSTOM_X 0
+#define ARITHMETIC 0
+#define MEMORY 1
+#define REGISTER 2
+#define MEMORY_REQUEST 3
 
   RVTEST_WITH_ROCC
 
@@ -11,36 +14,78 @@ start:
 
   RVTEST_CODE_BEGIN
 
-  // k_DO_READ after k_DO_WRITE
-  li a0, 1
-  lw a1, data
-  ROCC_INSTRUCTION_RAW_0_R_R(CUSTOM_X, a1, a0, k_DO_WRITE)
-  ROCC_INSTRUCTION_RAW_R_R_R(CUSTOM_X, a0, x0, a0, k_DO_READ)
-  TEST_CASE(1, a0, 0xdead, )
+  /*
+    Test arithmetic ROCC
+  */
 
-  // k_DO_ACCUM should return old value
-  li a0, 1
-  lw a2, data + 8
-  sub a2, a2, a1
-  ROCC_INSTRUCTION_RAW_R_R_R(CUSTOM_X, a0, a2, a0, k_DO_ACCUM)
-  TEST_CASE(2, a0, 0xdead, )
+  // TEST ADD
+  li a0, 5
+  li a1, 7
+  ROCC_INSTRUCTION_RAW_R_R_R(ARITHMETIC, a0, a0, a1, 0)
+  TEST_CASE(1, a0, 12, )
 
-  // k_DO_ACCUM should have accumulated
-  li a0, 1
-  lw a2, data + 8
-  ROCC_INSTRUCTION_RAW_R_R_R(CUSTOM_X, a0, x0, a0, k_DO_READ)
-  TEST_CASE(3, a0, 0xbeef, )
+  // TEST SUB
+  li a0, 7
+  li a1, 5
+  ROCC_INSTRUCTION_RAW_R_R_R(ARITHMETIC, a0, a0, a1, 1)
+  TEST_CASE(2, a0, 2, )
 
-  // k_DO_LOAD should return old value
-  li a0, 1
-  la a1, data + 16
-  ROCC_INSTRUCTION_RAW_R_R_R(CUSTOM_X, a0, a1, a0, k_DO_LOAD)
-  TEST_CASE(4, a0, 0xbeef, )
+  /*
+    Test register ROCC
+  */
 
-  // k_DO_LOAD should load new value
-  li a0, 1
-  ROCC_INSTRUCTION_RAW_R_R_R(CUSTOM_X, a0, x0, a0, k_DO_READ)
-  TEST_CASE(5, a0, 0x0bad, )
+  // TEST STORE 1
+  li a0, 5
+  ROCC_INSTRUCTION_RAW_R_R_R(REGISTER, a0, a0, x0, 0)
+  TEST_CASE(3, a0, 5, )
+
+  // TEST LOAD
+  li a0, 17
+  ROCC_INSTRUCTION_RAW_R_R_R(REGISTER, a0, x0, x0, 1)
+  TEST_CASE(4, a0, 5, )
+
+  // TEST STORE 2
+  li a0, 7
+  ROCC_INSTRUCTION_RAW_R_R_R(REGISTER, a0, a0, x0, 0)
+  TEST_CASE(5, a0, 7, )
+
+  // TEST LOAD
+  li a0, 17
+  ROCC_INSTRUCTION_RAW_R_R_R(REGISTER, a0, x0, x0, 1)
+  TEST_CASE(6, a0, 7, )
+
+  // TEST LOAD
+  li a0, 17
+  ROCC_INSTRUCTION_RAW_R_R_R(REGISTER, a0, x0, x0, 1)
+  TEST_CASE(7, a0, 7, )
+
+  /*
+    Test memory ROCC
+  */
+
+  // TEST STORE MEMORY 1
+  li a0, 5
+  li a1, 0
+  ROCC_INSTRUCTION_RAW_R_R_R(MEMORY, a0, a0, a1, 0)
+  TEST_CASE(8, a0, 0, )
+
+  // TEST STORE MEMORY 2
+  li a0, 27
+  li a1, 1
+  ROCC_INSTRUCTION_RAW_R_R_R(MEMORY, a0, a0, a1, 0)
+  TEST_CASE(9, a0, 0, )
+
+  // TEST LOAD 1
+  li a0, 0
+  li a1, 0
+  ROCC_INSTRUCTION_RAW_R_R_R(MEMORY, a0, a0, a1, 1)
+  TEST_CASE(10, a0, 5, )
+
+  // TEST LOAD 2
+  li a0, 0
+  li a1, 1
+  ROCC_INSTRUCTION_RAW_R_R_R(MEMORY, a0, a0, a1, 1)
+  TEST_CASE(11, a0, 27, )
 
   TEST_PASSFAIL
 
